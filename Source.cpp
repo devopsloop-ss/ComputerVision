@@ -1,3 +1,7 @@
+/*The code here extracts HOG descriptor vector from an image of given size. Parameters can be varied using given macros.
+Note that if bin size is changed then suitable values have to be added to bin values array*/
+
+
 #include<iostream>
 #include<fstream>
 #include<string>
