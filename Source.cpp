@@ -1,4 +1,6 @@
-/*The code here extracts HOG descriptor vector from an image of given size. Parameters can be varied using given macros.
+/*The code here extracts HOG descriptor vector from an image of given size. The image pixel data has to be extracted externally
+by some other program and has to be stored as a csv file.
+Parameters can be varied using given macros.
 Note that if bin size is changed then suitable values have to be added to bin values array*/
 
 
