@@ -1,5 +1,5 @@
 /*The code here extracts HOG descriptor vector from an image of given size. The image pixel data has to be extracted externally
-by some other program and has to be stored as a csv file.
+by some other program and has to be stored as a csv file. The various outputs are written into various csv files.
 Parameters can be varied using given macros.
 Note that if bin size is changed then suitable values have to be added to bin values array*/
 
@@ -49,64 +49,10 @@ gradient::gradient(int h, int w)
 		gdt[i] = new grad[w];
 		for (j = 0; j < w; j++)
 		{
-		/*	if (i == 0)
-			{
-				if (j == 0)
-				{
-					gdt[i][j].x = image[i][j + 1];
-					gdt[i][j].y = image[i + 1][j];
-
-				}
-				else if (j == w - 1)
-				{
-					gdt[i][j].x = -image[i][j - 1];
-					gdt[i][j].y = image[i + 1][j];
-				}
-				else
-				{
-					gdt[i][j].x = image[i][j + 1]-image[i][j];
-					gdt[i][j].y = image[i + 1][j];
-				}
-			}
-			else if (i == h - 1)
-			{
-				if (j == 0)
-				{
-					gdt[i][j].x = image[i][j + 1];
-					gdt[i][j].y = -image[i - 1][j];
-				}
-				else if (j == w - 1)
-				{
-					gdt[i][j].x = -image[i][j -1];
-					gdt[i][j].y = -image[i - 1][j];
-				}
-				else
-				{
-					gdt[i][j].x = image[i][j + 1]-image[i][j-1];
-					gdt[i][j].y = -image[i - 1][j];
-				}
-			}
-			else if (j == 0)
-			{
-				gdt[i][j].x = image[i][j + 1];
-				gdt[i][j].y = image[i+1][j]-image[i - 1][j];
-			}
-			else if (j == w - 1)
-			{
-				gdt[i][j].x = -image[i][j-1];
-				gdt[i][j].y = image[i+1][j]-image[i - 1][j];
-			}
-			else 
-			{
-				gdt[i][j].x = image[i][j-1]-image[i][j + 1];
-				gdt[i][j].y = image[i+1][j]-image[i - 1][j];
-			}
-
-		*/	
 			if (i != 0 && j != 0 && i != (h - 1) && j != (w - 1))
 			{
-				gdt[i][j].x = image[i][j - 1] - image[i][j + 1];
-				gdt[i][j].y = image[i + 1][j] - image[i - 1][j];
+				gdt[i][j].x = (float)image[i][j - 1] - image[i][j + 1];
+				gdt[i][j].y = (float)image[i + 1][j] - image[i - 1][j];
 			}
 			else
 			{
@@ -117,9 +63,9 @@ gradient::gradient(int h, int w)
 			if (gdt[i][j].x == 0.0)
 			{
 				if (gdt[i][j].y != 0.0)
-					gdt[i][j].angle = 3.14159265 / 2;
+					gdt[i][j].angle = 3.14159265f / 2;
 				else
-					gdt[i][j].angle = 0.5;
+					gdt[i][j].angle = 5.0;
 			}
 
 			else
@@ -127,13 +73,14 @@ gradient::gradient(int h, int w)
 			gdt[i][j].mag = sqrt(gdt[i][j].x*gdt[i][j].x + gdt[i][j].y*gdt[i][j].y);
 			if (gdt[i][j].angle < 0)
 			{
-				gdt[i][j].angle += 3.14159265;
+				gdt[i][j].angle += 3.14159265f;
 			}
 			if(gdt[i][j].mag!=0.0)
 			{
 				gdt[i][j].x /= gdt[i][j].mag;
 				gdt[i][j].y /= gdt[i][j].mag;
 			}
+			gdt[i][j].mag = (gdt[i][j].mag != 0.0)?1.0:0.0;
 		}
 	}
 }
@@ -151,11 +98,11 @@ void cell::setup(int a, int b, gradient &g)
 {
 	starti = a;
 	startj = b;
-	bin_cent[0] = 0;
-	bin_cent[1] = 0.785398163;
-	bin_cent[2] = 1.57079633;
-	bin_cent[3] = 2.35619449;
-	bin_cent[4] = 3.14159265;
+	bin_cent[0] = 0.0;
+	bin_cent[1] = 0.78539816f;
+	bin_cent[2] = 1.57079633f;
+	bin_cent[3] = 2.35619449f;
+	bin_cent[4] = 3.14159265f;
 	imax = a + C_SIZE;
 	jmax = b + C_SIZE;
 	for (i = 0; i < BIN_SIZE; i++)
@@ -164,17 +111,25 @@ void cell::setup(int a, int b, gradient &g)
 	{
 		for (j = startj; j < jmax; j++)
 		{
+			if (g.gdt[i][j].angle == 5.0)
+				continue;
 			int k, l;
-			for (k = 4, l = 3; k > 0 && l > -1; k--, l--)
+			for (k = 4, l = 3; l > -1; k--, l--)
 			{
 				if (g.gdt[i][j].angle >= bin_cent[l])
 					break;
 			}
-			float diff = bin_cent[k] - bin_cent[l], q = bin_cent[k] - g.gdt[i][j].angle, r = g.gdt[i][j].angle - bin_cent[l];
+			float q = bin_cent[k] - g.gdt[i][j].angle, r = g.gdt[i][j].angle - bin_cent[l];
 			histogram[k] += g.gdt[i][j].mag*(r / (q + r));
 			histogram[l] += g.gdt[i][j].mag*(q / (q + r));
 		}
 	}
+	cout << "Histogram : ";
+	for (int k = 0; k < BIN_SIZE; k++)
+	{
+		cout << histogram[k] << ',';
+	}
+	cout << endl;
 }
 
 class block
@@ -203,16 +158,26 @@ void block::setup(int a, int b, cell **c)
 		mag = mag + block_his[k]*block_his[k];
 	}
 	mag = sqrt(mag += 1.0);
+	
 	for (int k = 0; k < blkHistSize; k++)
 	{
 		block_his[k] /= mag;
 	}
+
+	cout << "\nBlock normalised Histogram : ";
+	for (int k = 0; k < blkHistSize; k++)
+	{
+		cout << block_his[k] << ',';
+		if ((k+1)%BIN_SIZE == 0)
+			cout << "\t";
+	}
+	cout << endl;
 }
 int main()
 {
 	char path[200];
 	ifstream filein;
-	ofstream gmag, g_x, g_y, g_ang, HogV;
+	ofstream gmag, g_x, g_y, g_ang, HogV, histogram;
 	cout << "Enter the path of the image : ";
 	cin >> path;
 	filein.open(path);
@@ -221,6 +186,7 @@ int main()
 	g_y.open("g_y.csv");
 	g_ang.open("g_ang.csv");
 	HogV.open("HogV.csv");
+	histogram.open("h.csv");
 	string x;
 	float per=0;
 	image = new int*[HEIGHT];
@@ -299,6 +265,7 @@ int main()
 	
 	const int o = blkHistSize*(m-1)*(n-1);
 	float HOGvect[o];
+		
 	for (int i = 0,k=0; i < m - 1; i++)
 	{
 		for (int j = 0; j < n - 1; j++)
@@ -309,6 +276,7 @@ int main()
 			}
 		}
 	}
+	
 	//End of main code
 
 	//output to output files
@@ -327,9 +295,28 @@ int main()
 		g_y << "\n";
 		g_ang << "\n";
 	}
-	for (int i = 0; i < o; i++)
+	float h[BIN_SIZE];
+	for (int i = 0; i < BIN_SIZE; i++)
+		h[i] = 0.0;
+	cout << endl;
+	for (int i = 0,j=0; i < o; i++,j++)
 	{
 		HogV << HOGvect[i] << ",";
+		cout << HOGvect[i] << ",";
+		h[j] += HOGvect[i];
+		if (j + 1 == BIN_SIZE)
+		{
+			j = -1;
+			cout << endl;
+		}
+	}
+
+	cout << "\nFinal Histogram : \n";
+
+	for (size_t i = 0; i < BIN_SIZE; i++)
+	{
+		histogram << h[i]<<",";
+		cout << h[i] << ",";
 	}
 	filein.close();
 	gmag.close();
